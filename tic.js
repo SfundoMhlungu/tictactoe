@@ -1,4 +1,33 @@
-const readline = require("readline")
+let readline;
+let inNode = true;
+if (typeof process !== 'undefined') {
+ readline = require("readline");
+ readline.emitKeypressEvents(process.stdin);
+ process.stdin.setRawMode(true);
+ process.stdin.on('keypress', (str, key) => {
+   if (key.ctrl && key.name === 'c') {
+     process.exit();
+   } else {
+       if(turn){
+         if(combo.row){
+             combo.col = key.name
+             turn = false
+             game.move(combo)
+          }else{
+            combo.row = key.name
+          }
+       }else{
+           console.log("wait your turn")
+       }
+      
+    
+   }
+ });
+ 
+}else{
+   inNode = false;
+
+}
 // console.log(readline)
 const allequal = arr => arr.every(v => v !== " " &&  v === arr[0]);
 let turn = true
@@ -8,6 +37,7 @@ let combo = {
     row: undefined,
     col: undefined
 }
+let cells = {}
 
 const board = [[" ", " " , " "], 
                [" ", " " , " "], 
@@ -16,6 +46,7 @@ const board = [[" ", " " , " "],
 ]
 
 let m = []
+let w;
 //board[0][0] = "a"
 let game = {
   update : function(){
@@ -24,14 +55,22 @@ let game = {
     if(gameOver){
       this.updateBoard()
       console.log(`Game over ${winner} won!`)
-      process.exit();
+        if(inNode){
+          process.exit();
+        }else{
+          turn = false
+        }
       }
      this.updateBoard();
     m = this.possibleMoves();
     if(m.length === 0){
       gameOver = true;
       console.log("Game over by draw")
-      process.exit();
+      if(inNode){
+        process.exit();
+      }else{
+        turn = false
+      }
     }
     
   },
@@ -81,7 +120,7 @@ let game = {
         board[+c.row][+c.col] = "x"
         combo.row = undefined
         combo.col = undefined
-        this.update()
+        this.update();
         setTimeout(() => {
             this.computer()
         }, 3000);
@@ -102,7 +141,7 @@ let game = {
           // possible moves 
           // make a move
           // allow player to play
-         
+           if(gameOver) return;
           console.log(m)
           if(m.length > 0){
               let ra = Math.round(Math.random() * (m.length - 1))
@@ -111,11 +150,13 @@ let game = {
           }
           turn = true
           this.update()
-          console.log("ur turn")
+          if(inNode){
+            console.log("ur turn")
+          }
     },
   updateBoard: function(){
    // this.isgameOver()
-  
+     if(inNode){
         console.log("   ")
         board.forEach((arr, i)=> {
             // second idea 1.1
@@ -129,31 +170,112 @@ let game = {
            // let p = arr.toString()
             //  console.log(p.split(",").join(","))----------------
         })
+    }else{
+      // console.log("updating viz board")
+      board.forEach((arr, i)=> {
+           arr.forEach((val, j)=> {
+            //  console.log(val)
+             if(val === "O"){
+                  
+                if(!cells[`${i}-${j}`].firstChild){
+                 
+                  const img = document.createElement("img")
+                  img.src = "./img/O.png"
+                  img.height = w
+                  img.width = w
+                  cells[`${i}-${j}`].appendChild(img)
+                }
+             }
+           })
+      })
+
+      
     }
+  }
 }
 
 
-readline.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
-process.stdin.on('keypress', (str, key) => {
-  if (key.ctrl && key.name === 'c') {
-    process.exit();
-  } else {
-      if(turn){
-        if(combo.row){
-            combo.col = key.name
-            turn = false
-            game.move(combo)
-         }else{
-           combo.row = key.name
-         }
-      }else{
-          console.log("wait your turn")
-      }
-     
+
+
+
+if (!inNode) {
+ 
+
+     function processClick(state){
+         const img = document.createElement("img")
+         img.src = "./img/X.png"
+         img.height = state.w
+         img.width = state.w
+        //  img.classList.add("img")
+        //  console.log(img) 
+        if(board[state.row][state.col] === " " && turn){
+         cells[`${state.row}-${state.col}`].appendChild(img)
+         board[state.row][state.col] = "X"
+         game.update();
+         setTimeout(() => {
+          game.computer()
+      }, 300);
+        }
+     }
+
+     function createCell(w, col, row){
+
+
+
+          function keepContext(){
+              
+            let state = {
+              col, 
+              row, 
+              w
+            }
+
+            let d = document.createElement("div");
+            d.style = `background: lightgray;`
+            d.classList.add("reset")
+            d.style.paddingBottom = `${w}px`
+            d.style.paddingRight = `${w}px`
+            d.onclick = () => processClick(state)
+            cells[`${row}-${col}`] = d
+            return d
+
+        }
+
+      return keepContext()
+     }
+
+
+
+
+    let app = document.querySelector(".app") 
+  // run in the browser
+   console.log("will only run in the browser")
+    w = Math.floor(300/board.length - 2);
+/**
+ * @type {HTMLDivElement}
+ */
+  
+
+  //  d.width = w
+  //  d.height = w
+  //  console.log(d)
+  const len = board.length 
+
+  for(let i = 0; i < len; i++){
+    for(let j = 0; j < len; j++){
+
+      app.appendChild(createCell(w, i, j))
+    }
+
+
+ }
    
-  }
-});
+
+
+
+console.log(cells)
+} 
+
 
 
 
@@ -164,4 +286,4 @@ process.stdin.on('keypress', (str, key) => {
 
 // second idea 
 
-game.updateBoard()
+// game.updateBoard()
